@@ -24,6 +24,7 @@ on:
 
 permissions:
   contents: write
+  actions: read
 
 concurrency:
   group: dogmon-daily
@@ -151,6 +152,7 @@ jobs:
         continue-on-error: true
         env:
           DOGMON: ${{ runner.temp }}/dogmon-msg
+          GH_TOKEN: ${{ github.token }}
         run: |
           python3 .engine/tools/quiet.py .engine/tools/daily.py message . ok > "$RUNNER_TEMP/message.md" 2>/dev/null && [ -s "$RUNNER_TEMP/message.md" ]
           cp "$RUNNER_TEMP/message.md" data/message.md && echo ok
