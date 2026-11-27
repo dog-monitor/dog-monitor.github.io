@@ -8,7 +8,7 @@
 - DOG against the top meme coins.
 - The top 100 and every 10M+ DOG wallet, average cost, coins in profit and loss, C2 Blockchain holdings.
 
-Works in any browser and installs on a phone or tablet like an app. English, plain words, no ads, no cookies; visits are
+Works in any browser and installs on a phone or tablet like an app. English, plain words, no cookies; visits are
 counted anonymously.
 
 ## How it works
