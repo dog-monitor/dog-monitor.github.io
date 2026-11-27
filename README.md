@@ -3,7 +3,7 @@
 **https://dog-monitor.github.io/** — a free, unofficial live tracker for **DOG•GO•TO•THE•MOON**, the Bitcoin rune 840000:3.
 
 - Live price and charts: candles from 15 minutes to 1 week, RSI and MACD, DOG against bitcoin.
-- One order book from 6 exchanges: Kraken, Gate, MEXC, BingX, DigiFinex and CoinW.
+- One order book from 6 exchanges.
 - Three Fear & Greed indices: alternative.me, CoinMarketCap and DOG Monitor’s own DOG index.
 - DOG against the top meme coins.
 - The top 100 and every 10M+ DOG wallet, average cost, coins in profit and loss, C2 Blockchain holdings.
@@ -14,8 +14,7 @@ counted anonymously.
 ## How it works
 
 - Live price and order books come straight from the exchanges, in your browser.
-- A full report is built several times a day and published in `data/`: order books, wallet balances read from the
-  Bitcoin blockchain, daily prices and the fear & greed indices. Figures are cross-checked between sources.
+- A full report is built several times a day; figures are cross-checked between sources.
 - Every new version is checked in real browsers — Chrome and Safari on phone, tablet and desktop — before it goes live,
   and the live site is checked again through the day.
 

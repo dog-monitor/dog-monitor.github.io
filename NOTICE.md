@@ -7,9 +7,8 @@ Copyright © TradingView, Inc. Лицензия Apache License 2.0 (https://www.
 **Шрифт Inter** (и Inter Display) — Copyright 2016–2023 The Inter Project Authors (https://github.com/rsms/inter). Лицензия SIL Open Font License 1.1 (текст — `fonts/OFL-Inter.txt`). На сайте лежат его сокращённые до латиницы и кириллицы версии в формате WOFF (обычный, средний и полужирный, Inter Display полужирный и курсив только для знака «dog monitor»).
 **Шрифты Jost и Golos Text** — Copyright 2020 The Jost Project Authors (https://github.com/indestructible-type) и 2019 The Golos Text Project Authors (https://github.com/googlefonts/golos-text), SIL Open Font License 1.1 (`fonts/OFL-Jost.txt`, `fonts/OFL-GolosText.txt`) — ими был набран прежний вид сайта (убран 17.11.2026, файлы шрифтов остались в `fonts/`).
 
-**Данные — источники**
-- Публичные API бирж: Kraken, Gate, MEXC, BingX, DigiFinex, CoinW; Coinbase — биткоин.
-- Блокчейн Bitcoin: ordinals.com (официальный обозреватель ord) и Xverse.
+**Данные**
+- Публичные API бирж и блокчейн Bitcoin.
 - DOG DATA (https://www.dogdata.xyz).
 - CoinGecko — данные предоставлены CoinGecko (https://www.coingecko.com).
 - Индексы страха и жадности всего крипторынка: alternative.me (Crypto Fear & Greed Index, https://alternative.me/crypto/fear-and-greed-index/) и CoinMarketCap (CMC Crypto Fear and Greed Index, https://coinmarketcap.com/charts/fear-and-greed-index/) — показаны как есть, со ссылкой на источник.
