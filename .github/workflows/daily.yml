@@ -9,16 +9,16 @@ on:
   workflow_dispatch:
     inputs:
       mode:
-        description: 'full — полная сводка; wallets — средние цены кошельков; page — только страница; news — запись о запасах компаний'
+        description: 'full — полная сводка; wallets — средние цены кошельков; page — только страница; news — запись о запасах компаний; promo — картинка для X'
         default: full
         type: choice
-        options: [full, wallets, page, news]
+        options: [full, wallets, page, news, promo]
       news:
         description: 'для news — JSON-массив записей'
         default: ''
         type: string
       debug:
-        description: 'полный вывод скриптов в лог (лог публичный — после разбора удалить запуск)'
+        description: 'полный вывод в лог (лог публичный — после разбора удалить запуск)'
         default: false
         type: boolean
 
@@ -33,6 +33,7 @@ concurrency:
 env:
   MODE: ${{ github.event.inputs.mode || 'full' }}
   DEBUG: ${{ github.event.inputs.debug || 'false' }}
+  CI: python3 .engine/tools/quiet.py .engine/tools/ci.py
 
 jobs:
   update:
@@ -44,12 +45,6 @@ jobs:
           ref: main
           fetch-depth: 1
 
-      - name: Адрес сайта
-        run: |
-          OWNER="${GITHUB_REPOSITORY%%/*}"; NAME="${GITHUB_REPOSITORY#*/}"; HOST="${OWNER,,}.github.io"
-          if [ "${NAME,,}" = "$HOST" ]; then URL="https://$HOST/"; else URL="https://$HOST/$NAME/"; fi
-          echo "SITE_URL=$URL" >> "$GITHUB_ENV"; echo "Сайт: $URL"
-
       - name: Движок
         uses: actions/checkout@v5
         with:
@@ -59,144 +54,82 @@ jobs:
           fetch-depth: 1
           persist-credentials: false
 
+      - name: Адрес сайта
+        run: $CI site-url
+
       - name: Данные
         if: env.MODE == 'full'
-        env:
-          DOGMON: ${{ runner.temp }}/dogmon
-          DOGMON_KIND: ${{ github.event_name != 'schedule' && 'запрос' || github.event.schedule == '41 5 * * *' && 'утро' || 'база' }}
-        run: |
-          rc=0; L="$RUNNER_TEMP/data.log"
-          python3 .engine/tools/quiet.py .engine/tools/daily.py run . > "$L" 2>&1 || rc=$?
-          if [ "$DEBUG" = true ]; then tail -n 200 "$L"; fi
-          if [ $rc -ne 0 ]; then grep -E '^ошибка' "$L" | tail -3; exit 1; fi
-          grep -E '^(CHECKS|SNAPSHOT_ID)=' "$L" | sort -u
+        run: $CI data
 
       - name: Средние цены кошельков
         if: env.MODE == 'full' || env.MODE == 'wallets'
         continue-on-error: true
         timeout-minutes: 12
-        run: |
-          rc=0; L="$RUNNER_TEMP/cost.log"
-          python3 .engine/tools/quiet.py .engine/tools/costbasis.py . > "$L" 2>&1 || rc=$?
-          if [ "$DEBUG" = true ]; then tail -n 120 "$L"; fi
-          if [ $rc -ne 0 ]; then grep -E '^ошибка' "$L" | tail -2; exit 1; fi; echo ok
+        run: $CI cost
 
       - name: Индексы страха и жадности
         if: env.MODE == 'full' || env.MODE == 'wallets'
         continue-on-error: true
         timeout-minutes: 3
-        run: |
-          set -o pipefail
-          python3 .engine/tools/quiet.py .engine/tools/mood.py . 2>&1 | grep -E '^MOOD DOG|^ошибка'
+        run: $CI mood
 
       - name: Мем-монеты
         if: env.MODE == 'full' || env.MODE == 'wallets'
         continue-on-error: true
         timeout-minutes: 4
-        run: |
-          rc=0; L="$RUNNER_TEMP/memes.log"
-          python3 .engine/tools/quiet.py .engine/tools/memes.py . > "$L" 2>&1 || rc=$?
-          if [ "$DEBUG" = true ]; then tail -n 120 "$L"; fi
-          if [ $rc -ne 0 ]; then grep -E '^ошибка' "$L" | tail -2; exit 1; fi; echo ok
+        run: $CI memes
 
       - name: Крупные кошельки
         if: env.MODE == 'full'
         continue-on-error: true
         timeout-minutes: 8
-        run: |
-          rc=0; L="$RUNNER_TEMP/whales.log"
-          python3 .engine/tools/quiet.py .engine/tools/whales.py . > "$L" 2>&1 || rc=$?
-          if [ "$DEBUG" = true ]; then tail -n 120 "$L"; fi
-          if [ $rc -ne 0 ]; then grep -E '^ошибка' "$L" | tail -2; exit 1; fi; echo ok
+        run: $CI whales
 
       - name: Запасы компаний
         if: env.MODE == 'news'
         env:
-          DOGMON: ${{ runner.temp }}/dogmon
           NEWS: ${{ github.event.inputs.news }}
-        run: |
-          printf '%s' "$NEWS" > "$RUNNER_TEMP/news.json"
-          python3 -c "import json,sys; d=json.load(open(sys.argv[1])); assert isinstance(d, list)" "$RUNNER_TEMP/news.json"
-          set -o pipefail
-          python3 .engine/tools/quiet.py .engine/tools/daily.py news . "$RUNNER_TEMP/news.json" 2>&1 | grep -E '^NEWS_ADDED|^ошибка'
+        run: $CI news
 
       - name: Страница
         id: page
-        if: env.MODE != 'news'
+        if: env.MODE != 'news' && env.MODE != 'promo'
         continue-on-error: true
         timeout-minutes: 4
-        run: |
-          mkdir -p "$RUNNER_TEMP/esb" && cd "$RUNNER_TEMP/esb"
-          npm init -y >/dev/null 2>&1
-          npm i --no-audit --no-fund esbuild@0.28.2 >/dev/null 2>&1
-          cd "$GITHUB_WORKSPACE"
-          NODE_PATH="$RUNNER_TEMP/esb/node_modules" node .engine/tools/build.js .engine/src/index.html "$RUNNER_TEMP/index.html"
-          cp "$RUNNER_TEMP/index.html" index.html
+        run: $CI page
 
       - name: Автопроверка в браузере
         id: selfcheck
-        if: env.MODE != 'news'
+        if: env.MODE != 'news' && env.MODE != 'promo'
         continue-on-error: true
         timeout-minutes: 12
-        run: |
-          mkdir -p "$RUNNER_TEMP/pw" && cd "$RUNNER_TEMP/pw"
-          npm init -y >/dev/null 2>&1
-          npm i --no-audit --no-fund playwright-core@1.63.0 >/dev/null 2>&1 || npm i --no-audit --no-fund playwright-core@1 >/dev/null 2>&1
-          npx --no-install playwright-core install --with-deps webkit >/dev/null 2>&1 || npx --no-install playwright-core install --with-deps webkit || true
-          cd "$GITHUB_WORKSPACE"
-          chk() { NODE_PATH="$RUNNER_TEMP/pw/node_modules" node .engine/tools/selfcheck.js . data/selfcheck.json; }
-          chk || { echo "::notice::не прошло — через 30 с ещё раз"; sleep 30; chk; }
+        run: $CI selfcheck
+
+      - name: Картинка для X
+        if: env.MODE == 'full' || env.MODE == 'promo'
+        continue-on-error: true
+        timeout-minutes: 8
+        run: $CI promo
 
       - name: Утреннее сообщение
         if: env.MODE == 'full' || env.MODE == 'news'
         continue-on-error: true
         env:
-          DOGMON: ${{ runner.temp }}/dogmon-msg
           GH_TOKEN: ${{ github.token }}
-        run: |
-          python3 .engine/tools/quiet.py .engine/tools/daily.py message . ok > "$RUNNER_TEMP/message.md" 2>/dev/null && [ -s "$RUNNER_TEMP/message.md" ]
-          cp "$RUNNER_TEMP/message.md" data/message.md && echo ok
+        run: $CI message
 
       - name: Выкладка
-        run: |
-          python3 .engine/tools/quiet.py .engine/tools/siteurl.py . >/dev/null
-          if [ "${{ steps.selfcheck.outcome }}" = failure ] && ! git diff --quiet -- index.html; then
-            echo "::warning::автопроверка не прошла — новая страница не выкладывается, остаётся прежняя"; git checkout -- index.html
-          fi
-          git config user.name "DOG Monitor bot"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add data index.html classic/index.html
-          if git diff --cached --quiet; then echo "нет изменений"; exit 0; fi
-          ID=$(python3 -c "import json;print(json.load(open('data/version.json'))['id'])")
-          if [ "$MODE" = page ]; then
-            if git diff --cached --quiet -- index.html; then git commit -m "Автопроверка сайта (авто, page)"; else git commit -m "Страница (авто)"; fi
-          elif [ "$MODE" = news ]; then git commit -m "Запасы компаний (авто)"
-          else git commit -m "Сводка $ID (авто, $MODE)"; fi
-          for i in 1 2 3 4 5; do
-            git push origin HEAD:main && exit 0
-            git fetch --depth=20 origin main
-            if ! git rebase origin/main; then
-              pages=
-              for f in $(git diff --name-only --diff-filter=U); do
-                case "$f" in
-                  data/*) git checkout --theirs -- "$f" ;;
-                  *) git checkout --ours -- "$f"; pages=1 ;;
-                esac
-                git add -- "$f"
-              done
-              if [ -n "$pages" ]; then python3 .engine/tools/quiet.py .engine/tools/siteurl.py . >/dev/null && git add -- data/site.json index.html classic/index.html; fi
-              GIT_EDITOR=true git rebase --continue || { git rebase --abort; exit 1; }
-            fi
-          done
-          exit 1
+        env:
+          SELFCHECK: ${{ steps.selfcheck.outcome }}
+        run: $CI publish
 
       - name: Проверка выкладки
         if: env.MODE == 'full'
         timeout-minutes: 12
-        run: python3 .engine/tools/quiet.py .engine/tools/livecheck.py . "$SITE_URL"
+        run: $CI livecheck
 
       - name: Итог автопроверки
         if: ${{ always() && steps.selfcheck.outcome == 'failure' }}
         run: |
-          echo "::error::Автопроверка нашла проблемы — см. шаг «Автопроверка в браузере» и data/selfcheck.json"
+          echo "::error::Автопроверка нашла проблемы — см. шаг «Автопроверка в браузере»"
           exit 1
