@@ -67,17 +67,17 @@ jobs:
         timeout-minutes: 12
         run: $CI cost
 
-      - name: Индексы страха и жадности
-        if: env.MODE == 'full' || env.MODE == 'wallets'
-        continue-on-error: true
-        timeout-minutes: 3
-        run: $CI mood
-
       - name: Мем-монеты
         if: env.MODE == 'full' || env.MODE == 'wallets'
         continue-on-error: true
         timeout-minutes: 4
         run: $CI memes
+
+      - name: Индексы страха и жадности
+        if: env.MODE == 'full' || env.MODE == 'wallets'
+        continue-on-error: true
+        timeout-minutes: 3
+        run: $CI mood
 
       - name: Крупные кошельки
         if: env.MODE == 'full'
